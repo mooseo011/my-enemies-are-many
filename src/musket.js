@@ -72,11 +72,12 @@ const RELOAD_STAGES = [
 ];
 const RELOAD_TOTAL = RELOAD_STAGES.reduce((s, x) => s + x.dur, 0);
 
-const HIP_POS = new THREE.Vector3(0.26, -0.27, -0.5);
-const HIP_ROT = new THREE.Euler(0, 0.06, 0.02);
-const AIM_POS = new THREE.Vector3(0.0, -0.18, -0.38);
+const VIEWMODEL_SCALE = 0.62;
+const HIP_POS = new THREE.Vector3(0.23, -0.24, -0.42);
+const HIP_ROT = new THREE.Euler(-0.03, 0.1, 0.03);
+const AIM_POS = new THREE.Vector3(0.0, -0.145, -0.3);
 const AIM_ROT = new THREE.Euler(0, 0, 0);
-const RELOAD_POS = new THREE.Vector3(0.18, -0.42, -0.42);
+const RELOAD_POS = new THREE.Vector3(0.16, -0.36, -0.36);
 const RELOAD_ROT = new THREE.Euler(-1.15, 0.35, 0.25);
 
 export class PlayerMusket {
@@ -86,6 +87,7 @@ export class PlayerMusket {
     this.effects = effects;
 
     this.group = buildMusketModel({ bayonet: true });
+    this.group.scale.setScalar(VIEWMODEL_SCALE);
     this.group.position.copy(HIP_POS);
     this.group.rotation.copy(HIP_ROT);
     camera.add(this.group);

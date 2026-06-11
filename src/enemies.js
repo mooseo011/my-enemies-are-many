@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { buildMusketModel } from './musket.js';
 
-const WALK_SPEED = 1.7;
+const WALK_SPEED = 2.2;
 const RUN_SPEED = 4.3;
 const CHARGE_RANGE = 11;
 const MELEE_RANGE = 2.0;
@@ -135,7 +135,8 @@ class EnemySoldier {
     this.dead = true;
     this.state = 'DEAD';
     this.deathT = 0;
-    this.mixer.stopAllAction();
+    // Freeze the current animation pose (don't reset to T-pose)
+    this.mixer.timeScale = 0;
     this.hitbox.userData.enemy = null;
     this.musket.rotation.set(Math.PI / 2 - 0.3, 0, 0.6);
     this.musket.position.set(0.5, 0.2, 0.4);
@@ -241,9 +242,9 @@ class EnemySoldier {
     this.manager.audio.enemyVolley(dist);
 
     const movePenalty = player.speed * 0.035;
-    const p = THREE.MathUtils.clamp(0.42 - dist * 0.008 - movePenalty, 0.05, 0.45);
+    const p = THREE.MathUtils.clamp(0.34 - dist * 0.007 - movePenalty, 0.05, 0.38);
     if (Math.random() < p) {
-      player.damage(10 + Math.random() * 12);
+      player.damage(9 + Math.random() * 10);
     } else {
       // near miss: whizzing ball, dirt kick near the player
       if (Math.random() < 0.6) this.manager.audio.musketBallWhiz();
@@ -344,7 +345,8 @@ export class EnemyManager {
       if (o.isMesh && o.material) src[o.material.name] = o.material;
     });
     const body = src['VanguardBodyMat'].clone();
-    body.color = new THREE.Color(0xd96a4a);
+    body.color = new THREE.Color(0xff8a66);
+    body.emissive = new THREE.Color(0x36100a);
     const visor = src['Vanguard_VisorMat'].clone();
     visor.color = new THREE.Color(0x222222);
     this.materials = { body, visor };
@@ -358,7 +360,7 @@ export class EnemyManager {
     const count = Math.min(4 + waveNum * 2, 26);
     const px = this.player.position.x;
     const centerX = THREE.MathUtils.clamp(px + (Math.random() - 0.5) * 40, -60, 60);
-    const baseZ = -100 - Math.random() * 25;
+    const baseZ = -78 - Math.random() * 15;
     const perRank = Math.min(count, 9);
     for (let i = 0; i < count; i++) {
       const rank = Math.floor(i / perRank);

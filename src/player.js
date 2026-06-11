@@ -23,7 +23,7 @@ export class Player {
 
     this.position = camera.position;
     this.position.set(0, world.heightAt(0, 8) + EYE_HEIGHT, 8);
-    camera.rotation.set(0, Math.PI, 0); // face the enemy approach (-Z)
+    camera.rotation.set(0, 0, 0); // default view faces -Z: toward the enemy approach
 
     this.velocity = new THREE.Vector3();
     this.vy = 0;
@@ -39,6 +39,9 @@ export class Player {
     this.lastDamage = -999;
     this.time = 0;
     this.shakeAmp = 0;
+    this.recoilOffset = 0;
+    this._appliedPitch = 0;
+    this._appliedYaw = 0;
     this.onDamaged = null;
     this.onDeath = null;
 
@@ -75,8 +78,8 @@ export class Player {
   }
 
   recoil() {
-    // flintlock kick: pitch the view up sharply
-    this.camera.rotation.x += 0.035;
+    // flintlock kick: pitch the view up sharply, then settle back
+    this.recoilOffset += 0.055;
     this.shake(0.12);
   }
 
@@ -138,12 +141,15 @@ export class Player {
       this.position.y += Math.abs(Math.sin(this.time * (this.sprinting ? 11 : 8))) * 0.045 * (this.speed / maxSpeed);
     }
 
-    // screen shake
-    if (this.shakeAmp > 0.001) {
-      this.camera.rotation.x += (Math.random() - 0.5) * this.shakeAmp * 0.06;
-      this.camera.rotation.y += (Math.random() - 0.5) * this.shakeAmp * 0.06;
-      this.shakeAmp *= Math.exp(-7 * dt);
-    }
+    // screen shake + recoil, applied as recoverable offsets (no permanent drift)
+    this.recoilOffset *= Math.exp(-6 * dt);
+    this.shakeAmp = this.shakeAmp > 0.001 ? this.shakeAmp * Math.exp(-7 * dt) : 0;
+    const pitch = this.recoilOffset + (Math.random() - 0.5) * this.shakeAmp * 0.06;
+    const yaw = (Math.random() - 0.5) * this.shakeAmp * 0.06;
+    this.camera.rotation.x += pitch - this._appliedPitch;
+    this.camera.rotation.y += yaw - this._appliedYaw;
+    this._appliedPitch = pitch;
+    this._appliedYaw = yaw;
 
     // aim zoom
     const targetFov = this.aiming ? 48 : this.baseFov;

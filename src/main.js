@@ -65,6 +65,9 @@ $('loading-note').style.display = 'none';
 $('start-cta').style.display = '';
 state = 'menu';
 
+// debug/testing handle
+window.__game = { player, enemies, musket, camera, get state() { return state; }, get wave() { return wave; } };
+
 // ---------- input ----------
 $('start-cta').addEventListener('click', () => beginBattle());
 $('restart-cta').addEventListener('click', () => window.location.reload());

@@ -56,24 +56,24 @@ export class Effects {
   }
 
   muzzleSmoke(pos, dir) {
-    // A thick rolling powder cloud — the signature of black-powder battle.
-    for (let i = 0; i < 10; i++) {
+    // A rolling powder cloud — the signature of black-powder battle.
+    for (let i = 0; i < 8; i++) {
       const spread = new THREE.Vector3(
-        (Math.random() - 0.5) * 1.6,
-        Math.random() * 0.9 + 0.25,
-        (Math.random() - 0.5) * 1.6
+        (Math.random() - 0.5) * 2.4,
+        Math.random() * 1.2 + 0.35,
+        (Math.random() - 0.5) * 2.4
       );
-      const vel = dir.clone().multiplyScalar(2.2 + Math.random() * 2.5).add(spread);
+      const vel = dir.clone().multiplyScalar(3.2 + Math.random() * 3).add(spread);
       this._spawn(this.smokeTex, {
-        pos: pos.clone().addScaledVector(dir, 0.3 + Math.random() * 0.9),
+        pos: pos.clone().addScaledVector(dir, 0.5 + Math.random() * 1.2),
         vel,
-        size: 0.5 + Math.random() * 0.7,
-        life: 1.6 + Math.random() * 1.6,
-        grow: 1.6,
-        opacity: 0.5,
+        size: 0.4 + Math.random() * 0.5,
+        life: 1.2 + Math.random() * 1.2,
+        grow: 1.4,
+        opacity: 0.34,
         color: new THREE.Color().setHSL(0.08, 0.08, 0.72 + Math.random() * 0.15),
         drag: 0.9,
-        gravity: 0.25,
+        gravity: 0.3,
       });
     }
   }
@@ -141,12 +141,12 @@ export class Effects {
   }
 
   bloodPuff(pos) {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       this._spawn(this.dustTex, {
         pos: pos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.3)),
-        vel: new THREE.Vector3((Math.random() - 0.5) * 2.5, Math.random() * 2, (Math.random() - 0.5) * 2.5),
-        size: 0.25 + Math.random() * 0.3, life: 0.5 + Math.random() * 0.4, grow: 1.8,
-        opacity: 0.85, color: 0x7e1b12, gravity: -4,
+        vel: new THREE.Vector3((Math.random() - 0.5) * 2.5, Math.random() * 1.5, (Math.random() - 0.5) * 2.5),
+        size: 0.16 + Math.random() * 0.18, life: 0.35 + Math.random() * 0.25, grow: 0.9,
+        opacity: 0.8, color: 0x7e1b12, gravity: -4,
       });
     }
   }
