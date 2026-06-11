@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Muskets &amp; Glory — A Napoleonic Skirmish</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>" />
+  <style>
+    :root {
+      --parchment: #e8dcc0;
+      --ink: #2a2118;
+      --blood: #7e1b12;
+      --brass: #c9a227;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+    body { font-family: Georgia, 'Times New Roman', serif; color: var(--parchment); user-select: none; }
+    #app { position: fixed; inset: 0; }
+    canvas { display: block; }
+
+    /* ---------- HUD ---------- */
+    #hud { position: fixed; inset: 0; pointer-events: none; display: none; }
+    #hud.active { display: block; }
+
+    #crosshair {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(232, 220, 192, 0.9);
+      box-shadow: 0 0 4px rgba(0,0,0,0.8);
+    }
+    #spread-ring {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid rgba(232, 220, 192, 0.45);
+      transition: width 0.12s ease-out, height 0.12s ease-out;
+    }
+    #hitmarker {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(45deg);
+      width: 26px; height: 26px; opacity: 0; pointer-events: none;
+    }
+    #hitmarker::before, #hitmarker::after {
+      content: ''; position: absolute; background: #ffdf91;
+      box-shadow: 0 0 4px rgba(0,0,0,0.9);
+    }
+    #hitmarker::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+    #hitmarker::after { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
+    #hitmarker.show { animation: hitpop 0.28s ease-out; }
+    @keyframes hitpop {
+      0% { opacity: 1; transform: translate(-50%, -50%) rotate(45deg) scale(1.4); }
+      100% { opacity: 0; transform: translate(-50%, -50%) rotate(45deg) scale(0.8); }
+    }
+
+    .panel {
+      position: absolute; padding: 10px 16px;
+      background: linear-gradient(160deg, rgba(26, 20, 12, 0.78), rgba(40, 30, 18, 0.78));
+      border: 1px solid rgba(201, 162, 39, 0.5);
+      border-radius: 3px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.6);
+    }
+    #health-panel { left: 22px; bottom: 22px; width: 240px; }
+    .panel-label {
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--brass); margin-bottom: 6px;
+    }
+    #health-bar-outer { width: 100%; height: 12px; background: rgba(0,0,0,0.6); border: 1px solid #594a30; }
+    #health-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #8c2318, #c0392b); transition: width 0.2s; }
+
+    #musket-panel { right: 22px; bottom: 22px; width: 260px; text-align: right; }
+    #musket-state { font-size: 20px; font-variant: small-caps; letter-spacing: 2px; }
+    #musket-state.loaded { color: #d9c98e; }
+    #musket-state.empty { color: #c0392b; }
+    #reload-bar-outer { width: 100%; height: 8px; background: rgba(0,0,0,0.6); border: 1px solid #594a30; margin-top: 6px; }
+    #reload-bar { width: 0%; height: 100%; background: var(--brass); }
+    #reload-stage { font-size: 12px; font-style: italic; color: #b5a682; margin-top: 4px; min-height: 15px; }
+
+    #score-panel { right: 22px; top: 22px; text-align: right; }
+    #score-panel .row { font-size: 15px; letter-spacing: 1px; }
+    #score-panel .row b { color: var(--brass); font-size: 19px; }
+
+    #banner {
+      position: absolute; left: 50%; top: 18%; transform: translateX(-50%);
+      font-size: 34px; font-variant: small-caps; letter-spacing: 6px; text-align: center;
+      color: var(--parchment); text-shadow: 0 2px 8px #000, 0 0 24px rgba(0,0,0,0.8);
+      opacity: 0; transition: opacity 0.6s; white-space: nowrap;
+    }
+    #banner .sub { font-size: 16px; letter-spacing: 3px; font-style: italic; color: #cdbb91; margin-top: 8px; }
+    #banner.show { opacity: 1; }
+
+    #vignette {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0;
+      background: radial-gradient(ellipse at center, transparent 42%, rgba(126, 27, 18, 0.85) 100%);
+      transition: opacity 0.45s;
+    }
+    #lowhealth {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(80, 0, 0, 0.7) 100%);
+    }
+
+    /* ---------- Screens ---------- */
+    .screen {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      background: radial-gradient(ellipse at 50% 35%, rgba(58, 46, 28, 0.92), rgba(12, 9, 5, 0.97));
+      z-index: 10;
+    }
+    .screen.hidden { display: none; }
+    .screen h1 {
+      font-size: 56px; font-variant: small-caps; letter-spacing: 10px;
+      color: var(--parchment); text-shadow: 0 3px 0 #1a130a, 0 0 30px rgba(201,162,39,0.25);
+    }
+    .screen h2 { font-size: 18px; font-weight: normal; font-style: italic; letter-spacing: 3px; color: var(--brass); margin-top: 10px; }
+    .rule {
+      width: 380px; height: 1px; margin: 26px 0;
+      background: linear-gradient(90deg, transparent, var(--brass), transparent);
+    }
+    .controls { font-size: 14px; line-height: 2; color: #cdbb91; letter-spacing: 1px; }
+    .controls b { color: var(--parchment); display: inline-block; min-width: 130px; text-align: right; margin-right: 14px; }
+    .cta {
+      margin-top: 34px; font-size: 21px; font-variant: small-caps; letter-spacing: 4px;
+      color: var(--parchment); padding: 12px 38px; cursor: pointer;
+      border: 1px solid var(--brass); border-radius: 2px;
+      background: rgba(201, 162, 39, 0.08);
+      transition: background 0.2s, transform 0.1s;
+      animation: pulse 2.2s ease-in-out infinite;
+    }
+    .cta:hover { background: rgba(201, 162, 39, 0.22); transform: scale(1.03); }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 rgba(201,162,39,0); } 50% { box-shadow: 0 0 22px rgba(201,162,39,0.35); } }
+    #death-screen h1 { color: #c0392b; }
+    #death-stats { font-size: 17px; letter-spacing: 2px; line-height: 2; color: #cdbb91; }
+    #death-stats b { color: var(--parchment); }
+    #loading-note { margin-top: 30px; font-size: 13px; font-style: italic; color: #8d7d5c; letter-spacing: 2px; }
+    .credits { position: absolute; bottom: 16px; font-size: 11px; color: #6e6147; letter-spacing: 1px; }
+    .credits a { color: #8d7d5c; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="hud">
+    <div id="vignette"></div>
+    <div id="lowhealth"></div>
+    <div id="spread-ring"></div>
+    <div id="crosshair"></div>
+    <div id="hitmarker"></div>
+
+    <div id="health-panel" class="panel">
+      <div class="panel-label">Vitality</div>
+      <div id="health-bar-outer"><div id="health-bar"></div></div>
+    </div>
+
+    <div id="musket-panel" class="panel">
+      <div class="panel-label">Charleville Musket</div>
+      <div id="musket-state" class="loaded">Loaded</div>
+      <div id="reload-bar-outer"><div id="reload-bar"></div></div>
+      <div id="reload-stage"></div>
+    </div>
+
+    <div id="score-panel" class="panel">
+      <div class="row">Wave <b id="wave-num">1</b></div>
+      <div class="row">Fallen Foes <b id="kill-num">0</b></div>
+    </div>
+
+    <div id="banner"><span id="banner-main"></span><div class="sub" id="banner-sub"></div></div>
+  </div>
+
+  <div id="start-screen" class="screen">
+    <h1>Muskets &amp; Glory</h1>
+    <h2>A Napoleonic Skirmish &mdash; Anno 1809</h2>
+    <div class="rule"></div>
+    <div class="controls">
+      <div><b>W A S D</b> March</div>
+      <div><b>Shift</b> Double-quick (sprint)</div>
+      <div><b>Mouse</b> Look &nbsp;&middot;&nbsp; <b style="min-width:0">Left Click</b> Fire</div>
+      <div><b>Right Click</b> Take aim</div>
+      <div><b>R</b> Reload &nbsp;&middot;&nbsp; <b style="min-width:0">F</b> Bayonet</div>
+      <div><b>Space</b> Jump</div>
+    </div>
+    <div id="start-cta" class="cta" style="display:none">Take the Field</div>
+    <div id="loading-note">Mustering the regiments&hellip;</div>
+    <div class="credits">
+      3D models: Soldier &amp; trees by Quaternius, cannon &amp; barrel by Kenney (CC0 / Public Domain)
+    </div>
+  </div>
+
+  <div id="death-screen" class="screen hidden">
+    <h1>Mort pour la France</h1>
+    <h2>You have fallen on the field of honour</h2>
+    <div class="rule"></div>
+    <div id="death-stats"></div>
+    <div id="restart-cta" class="cta">Rejoin the Battle</div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
