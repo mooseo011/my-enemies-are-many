@@ -345,8 +345,8 @@ export class EnemyManager {
       if (o.isMesh && o.material) src[o.material.name] = o.material;
     });
     const body = src['VanguardBodyMat'].clone();
-    body.color = new THREE.Color(0xff8a66);
-    body.emissive = new THREE.Color(0x36100a);
+    body.color = new THREE.Color(0xf26a4a);
+    body.emissive = new THREE.Color(0x2e0b06);
     const visor = src['Vanguard_VisorMat'].clone();
     visor.color = new THREE.Color(0x222222);
     this.materials = { body, visor };
